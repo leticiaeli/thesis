@@ -1,0 +1,2676 @@
+## FUNCOES ----
+
+sumcols = function(df, col_list, output_type){
+  first = TRUE
+  for(c in col_list){
+    if(first == TRUE){
+      main_col = df[,grepl(paste0(c,output_type),colnames(df))]
+      first = FALSE
+    }else{
+      main_col = main_col + df[,grepl(paste0(c,output_type),colnames(df))]
+    }
+  }
+  return(main_col)
+}
+
+df.balanco <- function(df, zt, internal_walls, external_walls, floor, roof, windows, doors){
+  
+  df_balanco = data.frame(
+    internal_gains = df[,grepl(paste0(zt,'.Zone.Total.Internal.Convective.Heating.Energy..J..'),colnames(df))], 
+    windows = -sumcols(df, windows, '.Surface.Inside.Face.Convection.Heat.Gain.Energy..J..'),
+    internal_walls = -sumcols(df, internal_walls, '.Surface.Inside.Face.Convection.Heat.Gain.Energy..J..'),
+    external_walls = -sumcols(df, external_walls, '.Surface.Inside.Face.Convection.Heat.Gain.Energy..J..'),
+    doors = -sumcols(df, doors, '.Surface.Inside.Face.Convection.Heat.Gain.Energy..J..'), 
+    floor = -sumcols(df, floor, '.Surface.Inside.Face.Convection.Heat.Gain.Energy..J..'),
+    roof = -sumcols(df, roof, '.Surface.Inside.Face.Convection.Heat.Gain.Energy..J..'),
+    cooling = -df[,grepl(paste0(zt,'.Zone.Air.System.Sensible.Cooling.Energy..J..'),colnames(df))],
+    heating = df[,grepl(paste0(zt,'.Zone.Air.System.Sensible.Heating.Energy..J..'),colnames(df))]
+  )
+  
+  if(any(grepl('Infiltration',colnames(df)))){
+    df_balanco$vn_loss = -df[,grepl(paste0(zt,'.AFN.Zone.Infiltration.Sensible.Heat.Loss.Energy..J..'),colnames(df))]
+    df_balanco$vn_gain = df[,grepl(paste0(zt,'.AFN.Zone.Infiltration.Sensible.Heat.Gain.Energy..J..'),colnames(df))]
+    #df_balanco$vn_loss_latent = -df[,grepl(paste0(zt,'.AFN.Zone.Infiltration.Latent.Heat.Loss.Energy..J..'),colnames(df))]
+    #df_balanco$vn_gain_latent = df[,grepl(paste0(zt,'.AFN.Zone.Infiltration.Latent.Heat.Gain.Energy..J..'),colnames(df))]
+  }
+  
+  return(df_balanco)
+}
+
+## retornar na centena mais proxima
+
+roundUp <- function(x) 10^ceiling(log10(x))
+
+foo <- function(x)
+{
+    round(x+5,-1)
+}
+
+## PUXANDO O ARQUIVO E FAZENDO O BALANCO ---- 
+
+## Dormitorio 1 ----
+
+# Aqui muda de acordo com o APP que se ta querendo analisar
+
+#colnames(df)
+zt = 'DORM1'
+internal_walls = c('PARINT1_DORM1SALA','PARINT2_DORM1DORM2')
+external_walls = c('PAREXT_LESTE_DORM1','PAREXT_SUL_DORM1')
+floor = c('PISO_QUARTO1')
+roof = c('FORRO_DORM1ATICO')
+windows = c('JANQUARTO1_SUL')
+doors = c('PORTAINT_DORM1SALA')
+
+# chamando o arquivo
+
+## OS CASOS DE VIDRO NAO RODARAM ALGUNS OUTPUTS... 
+
+setwd("D:/Frentes de Trabalho/simu_NBR/balanco_termico/NBR/BRA_sp_Sao.Paulo-Congonhas.AP.837800_TMYx.2003-2017/")
+#setwd('C:/Users/letic/Desktop/BT/NBR/BRA_AP_spapa-Alcolumbre.Intl.AP.820980_TMYx.2003-2017/')
+
+## pegando todos os arquivos da pasta com final 1 (assim exclui os table)
+
+file_list = list.files(pattern="*1.csv") # todos os csv menos o table
+
+library("data.table")
+
+for (i in 1:length(file_list)){
+  assign(file_list[i], read.csv(file_list[i]))
+}
+
+## criando o df com o somatorio de cada parcela do BT
+
+for(i in 1:length(file_list)){
+  nam <- paste("df", file_list[i], sep = "_")
+  df <- read.csv(file_list[i])
+	assign(nam, df.balanco(df, zt, internal_walls, external_walls, floor, roof, windows, doors))
+}
+
+## criando os graficos ----
+
+setwd("D:/Frentes de Trabalho/simu_NBR/balanco_termico/resultados/")
+#setwd('C:/Users/letic/Desktop/BT/NBR/resultados/')
+
+## esse teste aqui nao deu certo
+# for(i in names(file_list)){
+#   write.csv(file_list[[i]], paste0("df_",i,".csv"))
+# }
+# 
+# for(i in 1:length(file_list)){
+# 	write.csv(paste0("df_",file_list[i]),paste0("df_",file_list[i],".csv"))
+# }
+
+write.csv(df_vn_Caso1_sp_sta_co_1.csv, "df_vn_Caso1_sp_sta_co_1_sp.csv")
+write.csv(`df_vn_Caso2-FE35_1.csv`, "df_vn_Caso2-FE35_1_sp.csv")
+write.csv(`df_vn_Caso2-FE35_of_igual_1.csv`, "df_vn_Caso2-FE35_of_igual_1_sp.csv" )
+write.csv(`df_vn_Caso3-FE35_1.csv`, "df_vn_Caso3-FE35_1_sp.csv")
+write.csv(`df_vn_Caso3-FE35_of_igual_1.csv`, "df_vn_Caso3-FE35_of_igual_1_sp.csv" )
+write.csv(`df_vn_Caso4-FE35_1.csv`, "df_vn_Caso4-FE35_1_sp.csv")
+write.csv(`df_vn_Caso4-FE35_of_igual_1.csv`, "df_vn_Caso4-FE35_of_igual_1_sp.csv" )
+write.csv(`df_vn_Caso5-FE35_1.csv`, "df_vn_Caso5-FE35_1_sp.csv")
+write.csv(`df_vn_Caso5-FE35_of_igual_1.csv`, "df_vn_Caso5-FE35_of_igual_1_sp.csv" )
+
+# grafico de barras tem que fazer um para cada e aqui nao tera a parte do latente e eh um para cada csv ----
+# referencia ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso1_sp_sta_co_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso1_sp_sta_co_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso1_sp_sta_co_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso1_sp_sta_co_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso1_sp_sta_co_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+b = round(sum(df_graph$valor_kwh),0)
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+        labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 2 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso2_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso2_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso2_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso2_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso2_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso2_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso2_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso2_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso2_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+ graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+ # graph_png = "SP_D2_Ref.png"
+ # graph_png = "SP_D2_Caso2.png"
+ # graph_png = "SP_D2_Caso2_FE35.png"
+ # graph_png = "SP_D2_Caso2_FE35_OF.png"
+ # graph_png = "SP_D2_Caso3.png"
+ # graph_png = "SP_D2_Caso3_FE35.png"
+ # graph_png = "SP_D2_Caso3_FE35_OF.png"
+ # graph_png = "SP_D2_Caso4.png"
+ # graph_png = "SP_D2_Caso4_FE35.png"
+ # graph_png = "SP_D2_Caso4_FE35_OF.png"
+ # graph_png = "SP_D2_Caso5.png"
+ # graph_png = "SP_D2_Caso5_FE35.png"
+ # graph_png = "SP_D2_Caso5_FE35_OF.png"
+ 
+ # graph_png = "SP_SALA_Ref.png"
+ # graph_png = "SP_SALA_Caso2.png"
+ # graph_png = "SP_SALA_Caso2_FE35.png"
+ # graph_png = "SP_SALA_Caso2_FE35_OF.png"
+ # graph_png = "SP_SALA_Caso3.png"
+ # graph_png = "SP_SALA_Caso3_FE35.png"
+ # graph_png = "SP_SALA_Caso3_FE35_OF.png"
+ # graph_png = "SP_SALA_Caso4.png"
+ # graph_png = "SP_SALA_Caso4_FE35.png"
+ # graph_png = "SP_SALA_Caso4_FE35_OF.png"
+ # graph_png = "SP_SALA_Caso5.png"
+ # graph_png = "SP_SALA_Caso5_FE35.png"
+ # graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+ ## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 2 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso2-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso2-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso2-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso2-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso2-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso2-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso2-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso2-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso2-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+ graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 2 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+ graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 3 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso3_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso3_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso3_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso3_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso3_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso3_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso3_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso3_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso3_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+ graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 3 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso3-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso3-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso3-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso3-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso3-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso3-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso3-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso3-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso3-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+ graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 3 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+ graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 4 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso4_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso4_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso4_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso4_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso4_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso4_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso4_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso4_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso4_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+ graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 4 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso4-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso4-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso4-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso4-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso4-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso4-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso4-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso4-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso4-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+ graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 4 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+ graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 5 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso5_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso5_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso5_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso5_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso5_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso5_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso5_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso5_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso5_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+ graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 5 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso5-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso5-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso5-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso5-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso5-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso5-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso5-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso5-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso5-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+ graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 5 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+ graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+
+## Sala ----
+
+# Aqui muda de acordo com o APP que se ta querendo analisar
+
+#colnames(df)
+zt = 'SALA'
+internal_walls = c('PARINT2_SALABWC','PARINT1_SALABWC','PARINT1_SALADORM2','PARINT2_SALADORM1')
+external_walls = c('PAREXT_SUL_SALA','PAREXT_OESTE_SALA','PAREXT_LESTE_SALA','PAREXT_NORTE_SALA')
+floor = c('PISO_SALA')
+roof = c('FORRO_SALAATICO1','FORRO_SALAATICO2')
+windows = c('JANSALA_OESTE','JANSALA_SUL')
+doors = c('PORTAEXT_NORTE','PORTAINT_SALABWC','PORTAINT_SALADORM1','PORTAINT_SALADORM2','PORTAEXT_LESTE')
+
+# chamando o arquivo
+
+setwd("D:/Frentes de Trabalho/simu_NBR/balanco_termico/NBR/BRA_sp_Sao.Paulo-Congonhas.AP.837800_TMYx.2003-2017/")
+#setwd('C:/Users/letic/Desktop/BT/NBR/BRA_AP_spapa-Alcolumbre.Intl.AP.820980_TMYx.2003-2017/')
+
+## pegando todos os arquivos da pasta com final 1 (assim exclui os table)
+
+file_list = list.files(pattern="*1.csv") # todos os csv menos o table
+
+library("data.table")
+
+for (i in 1:length(file_list)){
+  assign(file_list[i], read.csv(file_list[i]))
+}
+
+## criando o df com o somatorio de cada parcela do BT
+
+for(i in 1:length(file_list)){
+  nam <- paste("df", file_list[i], sep = "_")
+  df <- read.csv(file_list[i])
+  assign(nam, df.balanco(df, zt, internal_walls, external_walls, floor, roof, windows, doors))
+}
+
+## criando os graficos ----
+
+setwd("D:/Frentes de Trabalho/simu_NBR/balanco_termico/resultados/")
+#setwd('C:/Users/letic/Desktop/BT/NBR/resultados/')
+
+## esse teste aqui nao deu certo
+# for(i in names(file_list)){
+#   write.csv(file_list[[i]], paste0("df_",i,".csv"))
+# }
+# 
+# for(i in 1:length(file_list)){
+# 	write.csv(paste0("df_",file_list[i]),paste0("df_",file_list[i],".csv"))
+# }
+
+write.csv(df_vn_Caso1_rj_sp_1.csv, "df_vn_Caso1_sp_sta_co_1_sp.csv")
+write.csv(`df_vn_Caso2-FE35_1.csv`, "df_vn_Caso2-FE35_1_sp.csv")
+write.csv(`df_vn_Caso2-FE35_of_igual_1.csv`, "df_vn_Caso2-FE35_of_igual_1_sp.csv" )
+write.csv(`df_vn_Caso3-FE35_1.csv`, "df_vn_Caso3-FE35_1_sp.csv")
+write.csv(`df_vn_Caso3-FE35_of_igual_1.csv`, "df_vn_Caso3-FE35_of_igual_1_sp.csv" )
+write.csv(`df_vn_Caso4-FE35_1.csv`, "df_vn_Caso4-FE35_1_sp.csv")
+write.csv(`df_vn_Caso4-FE35_of_igual_1.csv`, "df_vn_Caso4-FE35_of_igual_1_sp.csv" )
+write.csv(`df_vn_Caso5-FE35_1.csv`, "df_vn_Caso5-FE35_1_sp.csv")
+write.csv(`df_vn_Caso5-FE35_of_igual_1.csv`, "df_vn_Caso5-FE35_of_igual_1_sp.csv" )
+
+# grafico de barras tem que fazer um para cada e aqui nao tera a parte do latente e eh um para cada csv ----
+# referencia ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso1_sp_sta_co_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso1_sp_sta_co_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso1_sp_sta_co_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso1_sp_sta_co_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso1_sp_sta_co_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso1_sp_sta_co_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+ graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 2 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso2_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso2_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso2_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso2_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso2_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso2_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso2_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso2_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso2_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+ graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 2 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso2-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso2-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso2-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso2-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso2-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso2-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso2-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso2-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso2-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+ graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 2 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso2-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+ graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 3 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso3_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso3_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso3_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso3_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso3_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso3_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso3_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso3_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso3_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+ graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 3 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso3-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso3-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso3-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso3-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso3-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso3-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso3-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso3-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso3-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+ graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 3 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso3-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+ graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 4 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso4_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso4_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso4_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso4_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso4_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso4_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso4_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso4_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso4_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+ graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 4 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso4-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso4-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso4-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso4-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso4-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso4-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso4-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso4-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso4-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+ graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 4 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso4-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+ graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 5 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(df_vn_Caso5_1.csv$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(df_vn_Caso5_1.csv$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(df_vn_Caso5_1.csv$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(df_vn_Caso5_1.csv$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(df_vn_Caso5_1.csv$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(df_vn_Caso5_1.csv$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(df_vn_Caso5_1.csv$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(df_vn_Caso5_1.csv$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(df_vn_Caso5_1.csv$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+ graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 5 35 ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso5-FE35_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso5-FE35_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso5-FE35_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso5-FE35_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso5-FE35_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso5-FE35_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso5-FE35_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso5-FE35_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso5-FE35_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+ graph_png = "SP_SALA_Caso5_FE35.png"
+# graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
+
+# caso 5 35 OF ----
+
+df_graph = data.frame(ganho_perda=c("Carga Interna","Janelas","Paredes Internas","Paredes Externas","Portas","Piso","Cobertura","Perdas por VN","Ganhos por VN"),valor = c(1:1))
+
+df_graph$valor[df_graph$ganho_perda == "Carga Interna"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$internal_gains)
+df_graph$valor[df_graph$ganho_perda == "Janelas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$windows)
+df_graph$valor[df_graph$ganho_perda == "Paredes Internas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$internal_walls)
+df_graph$valor[df_graph$ganho_perda == "Paredes Externas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$external_walls)
+df_graph$valor[df_graph$ganho_perda == "Portas"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$doors)
+df_graph$valor[df_graph$ganho_perda == "Piso"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$floor)
+df_graph$valor[df_graph$ganho_perda == "Cobertura"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$roof)
+df_graph$valor[df_graph$ganho_perda == "Perdas por VN"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$vn_loss)
+df_graph$valor[df_graph$ganho_perda == "Ganhos por VN"] = sum(`df_vn_Caso5-FE35_of_igual_1.csv`$vn_gain)
+
+df_graph$valor_kwh <- df_graph$valor/3600000
+
+library(ggplot2)
+
+# somente vn (sem o plot da parte latente)
+
+df_graph$ganho_perda <- factor(df_graph$ganho_perda, levels=c("Carga Interna","Paredes Internas","Paredes Externas","Piso","Cobertura","Portas","Janelas","Perdas por VN","Ganhos por VN"))
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 1 - Ventilação Natural (VN)"
+
+# graph_title = "São Paulo: Balanço Térmico no Ar do Dormitório 2 - Ventilação Natural (VN)"
+
+ graph_title = "São Paulo: Balanço Térmico no Ar da Sala - Ventilação Natural (VN)"
+
+# graph_png = "SP_D1_Ref.png"
+# graph_png = "SP_D1_Caso2.png"
+# graph_png = "SP_D1_Caso2_FE35.png"
+# graph_png = "SP_D1_Caso2_FE35_OF.png"
+# graph_png = "SP_D1_Caso3.png"
+# graph_png = "SP_D1_Caso3_FE35.png"
+# graph_png = "SP_D1_Caso3_FE35_OF.png"
+# graph_png = "SP_D1_Caso4.png"
+# graph_png = "SP_D1_Caso4_FE35.png"
+# graph_png = "SP_D1_Caso4_FE35_OF.png"
+# graph_png = "SP_D1_Caso5.png"
+# graph_png = "SP_D1_Caso5_FE35.png"
+# graph_png = "SP_D1_Caso5_FE35_OF.png"
+
+# graph_png = "SP_D2_Ref.png"
+# graph_png = "SP_D2_Caso2.png"
+# graph_png = "SP_D2_Caso2_FE35.png"
+# graph_png = "SP_D2_Caso2_FE35_OF.png"
+# graph_png = "SP_D2_Caso3.png"
+# graph_png = "SP_D2_Caso3_FE35.png"
+# graph_png = "SP_D2_Caso3_FE35_OF.png"
+# graph_png = "SP_D2_Caso4.png"
+# graph_png = "SP_D2_Caso4_FE35.png"
+# graph_png = "SP_D2_Caso4_FE35_OF.png"
+# graph_png = "SP_D2_Caso5.png"
+# graph_png = "SP_D2_Caso5_FE35.png"
+# graph_png = "SP_D2_Caso5_FE35_OF.png"
+
+# graph_png = "SP_SALA_Ref.png"
+# graph_png = "SP_SALA_Caso2.png"
+# graph_png = "SP_SALA_Caso2_FE35.png"
+# graph_png = "SP_SALA_Caso2_FE35_OF.png"
+# graph_png = "SP_SALA_Caso3.png"
+# graph_png = "SP_SALA_Caso3_FE35.png"
+# graph_png = "SP_SALA_Caso3_FE35_OF.png"
+# graph_png = "SP_SALA_Caso4.png"
+# graph_png = "SP_SALA_Caso4_FE35.png"
+# graph_png = "SP_SALA_Caso4_FE35_OF.png"
+# graph_png = "SP_SALA_Caso5.png"
+# graph_png = "SP_SALA_Caso5_FE35.png"
+ graph_png = "SP_SALA_Caso5_FE35_OF.png"
+
+## limite do grafico
+
+max = max(df_graph$valor_kwh)
+min = min(df_graph$valor_kwh)
+
+a = as.numeric(ifelse(max > min*(-1), max, min*(-1)))
+
+#a1 = as.numeric(roundUp(a))
+a1 = as.numeric(foo(a))
+
+png(filename = paste0(graph_png), width = 25, height = 15, units = "cm", res = 500)
+plot(
+  ggplot(df_graph, aes(x=ganho_perda, y=valor_kwh, fill=ganho_perda)) +
+        geom_bar(stat="identity")+geom_text(aes(label=round(valor_kwh,0)), vjust=-0.3, size=3.5)+annotate("text", x = 8.25, y = a1, label = paste0("Resíduo: ",round(sum(df_graph$valor_kwh),0)," kWh"))+
+    labs(title=paste0(graph_title), x="Ganhos e Perdas", y="Ganhos e Perdas no Ar da Zona [kWh]")+
+    theme(legend.title = element_blank(),
+          axis.text.x = element_blank(),
+          axis.title.y = element_text(size=12, vjust = 2),
+          axis.text.y = element_text(size=10),
+          legend.text = element_text(size=10)
+          #strip.text.x = element_text(size=13)
+    )+
+    scale_fill_manual(values=c("#FFFF99","#B2DF8A","#33A02C","#FB9A99","#E31A1C","#FDBF6F","#FF7F00","#A6CEE3","#1F78B4"))+  # esse eh o Paired
+    ylim(-a1,a1)
+)
+dev.off()
