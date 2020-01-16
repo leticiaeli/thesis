@@ -1,0 +1,119 @@
+!-Generator IDFEditor 1.50
+!-Option SortedOrder
+
+!-NOTE: All comments with '!-' are ignored by the IDFEditor and are generated automatically.
+!-      Use '!' comments if they need to be retained when using the IDFEditor.
+
+
+!-   ===========  ALL OBJECTS IN CLASS: VERSION ===========
+
+!****ATENÇÃO****
+! ***** Este arquivo.idf foi desenvolvido pelo Laboratório de Eficiência Energética em Edificações *****
+! ***** O LabEEE não faz qualquer garantia, expressa ou implícita, ou assume *****
+! ***** qualquer responsabilidade legal ou responsabilidade pela exatidão *****
+! ***** dos componentes e suas propriedades térmicas aqui expostas. *****
+! ***** Referência à qualquer produto comercial específico por nome *****
+! ***** comercial, marca registrada, fabricante ou, de outra forma, não necessariamente *****
+! ***** constituem ou implicam seu endosso, recomendação ou favorecimento por *****
+! ***** parte do LabEEE. O nome do LabEEE não pode ser utilizado em nenhuma publicidade*****
+! ***** que implica endosso ou promoção e qualquer produto, serviços ou entidades comerciais.*****
+
+! ***** A veneziana modelada é de madeira e tem como critério a sua abertura quando a temperatura externa é maior do que 26°C. *****
+Version,
+    9.0;                     !- Version Identifier
+
+
+!-   ===========  ALL OBJECTS IN CLASS: WINDOWMATERIAL:BLIND ===========
+
+WindowMaterial:Blind,
+    veneziana_madeira,       !- Name
+    Horizontal,              !- Slat Orientation
+    0.05,                    !- Slat Width {m}
+    0.03,                    !- Slat Separation {m}
+    0.0042,                  !- Slat Thickness {m}
+    45,                      !- Slat Angle {deg}
+    0.29,                    !- Slat Conductivity {W/m-K}
+    0.14,                    !- Slat Beam Solar Transmittance
+    0.04,                    !- Front Side Slat Beam Solar Reflectance
+    0.04,                    !- Back Side Slat Beam Solar Reflectance
+    0.14,                    !- Slat Diffuse Solar Transmittance
+    0.04,                    !- Front Side Slat Diffuse Solar Reflectance
+    0.04,                    !- Back Side Slat Diffuse Solar Reflectance
+    0.14,                    !- Slat Beam Visible Transmittance
+    0.04,                    !- Front Side Slat Beam Visible Reflectance
+    0.04,                    !- Back Side Slat Beam Visible Reflectance
+    0.14,                    !- Slat Diffuse Visible Transmittance
+    0.04,                    !- Front Side Slat Diffuse Visible Reflectance
+    0.04,                    !- Back Side Slat Diffuse Visible Reflectance
+    0,                       !- Slat Infrared Hemispherical Transmittance
+    0.9,                     !- Front Side Slat Infrared Hemispherical Emissivity
+    0.9,                     !- Back Side Slat Infrared Hemispherical Emissivity
+    0.05,                    !- Blind to Glass Distance {m}
+    0,                       !- Blind Top Opening Multiplier
+    0,                       !- Blind Bottom Opening Multiplier
+    0,                       !- Blind Left Side Opening Multiplier
+    0,                       !- Blind Right Side Opening Multiplier
+    0,                       !- Minimum Slat Angle {deg}
+    0;                       !- Maximum Slat Angle {deg}
+
+
+!-   ===========  ALL OBJECTS IN CLASS: WINDOWSHADINGCONTROL ===========
+
+WindowShadingControl,
+    vene_sala_o,             !- Name
+    Sala,                    !- Zone Name
+    1,                       !- Shading Control Sequence Number
+    ExteriorBlind,           !- Shading Type
+    ,                        !- Construction with Shading Name
+    OnIfHighOutdoorAirTemperature,  !- Shading Control Type
+    ,                        !- Schedule Name
+    26,                      !- Setpoint {W/m2, W or deg C}
+    No,                      !- Shading Control Is Scheduled
+    No,                      !- Glare Control Is Active
+    veneziana_madeira,       !- Shading Device Material Name
+    FixedSlatAngle,          !- Type of Slat Angle Control for Blinds
+    ,                        !- Slat Angle Schedule Name
+    ,                        !- Setpoint 2 {W/m2 or deg C}
+    ,                        !- Daylighting Control Object Name
+    Sequential,              !- Multiple Surface Control Type
+    JANSALA_OESTE,           !- Fenestration Surface 1 Name
+    JANSALA_SUL;             !- Fenestration Surface 2 Name
+
+WindowShadingControl,
+    vene_d1,                 !- Name
+    Dorm1,                   !- Zone Name
+    1,                       !- Shading Control Sequence Number
+    ExteriorBlind,           !- Shading Type
+    ,                        !- Construction with Shading Name
+    OnIfHighOutdoorAirTemperature,  !- Shading Control Type
+    ,                        !- Schedule Name
+    26,                      !- Setpoint {W/m2, W or deg C}
+    No,                      !- Shading Control Is Scheduled
+    No,                      !- Glare Control Is Active
+    veneziana_madeira,       !- Shading Device Material Name
+    FixedSlatAngle,          !- Type of Slat Angle Control for Blinds
+    ,                        !- Slat Angle Schedule Name
+    ,                        !- Setpoint 2 {W/m2 or deg C}
+    ,                        !- Daylighting Control Object Name
+    Sequential,              !- Multiple Surface Control Type
+    JANQUARTO1_SUL;          !- Fenestration Surface 1 Name
+
+WindowShadingControl,
+    vene_d2,                 !- Name
+    Dorm2,                   !- Zone Name
+    1,                       !- Shading Control Sequence Number
+    ExteriorBlind,           !- Shading Type
+    ,                        !- Construction with Shading Name
+    OnIfHighOutdoorAirTemperature,  !- Shading Control Type
+    ,                        !- Schedule Name
+    26,                      !- Setpoint {W/m2, W or deg C}
+    No,                      !- Shading Control Is Scheduled
+    No,                      !- Glare Control Is Active
+    veneziana_madeira,       !- Shading Device Material Name
+    FixedSlatAngle,          !- Type of Slat Angle Control for Blinds
+    ,                        !- Slat Angle Schedule Name
+    ,                        !- Setpoint 2 {W/m2 or deg C}
+    ,                        !- Daylighting Control Object Name
+    Sequential,              !- Multiple Surface Control Type
+    JANQUARTO2_LESTE;        !- Fenestration Surface 1 Name
+
